@@ -1,0 +1,53 @@
+defaults: &defaults
+  working_directory: ~/async-scope
+  docker:
+    - image: circleci/node:6.12.3
+
+version: 2
+jobs:
+  test:
+    <<: *defaults
+    docker:
+      - image: circleci/node:8.9.4
+    steps:
+      - checkout
+      - run:
+          name: Install NPM Dependencies
+          command: npm install
+      - run:
+          name: Run Test Suite
+          command: npm test
+
+  publish:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Create .npmrc
+          command: 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc'
+      - run:
+          name: Install NPM Dependencies
+          command: npm install
+      - run:
+          name: Build Publish Assets
+          command: npm run build
+      - run:
+          name: Publish to NPM
+          command: npm publish --access public
+
+workflows:
+  version: 2
+  build_test:
+      jobs:
+        - test:
+            filters:
+              tags:
+                only: /.*/
+        - publish:
+            requires:
+              - test
+            filters:
+              tags:
+                only: /(v)?[0-9]+(\.[0-9]+)*/
+              branches:
+                ignore: /.*/

@@ -30,11 +30,11 @@
     "release:major": "npm version major && npm run release:publish",
     "release:publish": "git push --follow-tags"
   },
-  "author": "Kevin Greene<hightimesteddy@gmail.com>",
+  "author": "Credit Karma",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kevinbgreene/async-scope"
+    "url": "https://github.com/creditkarma/async-scope"
   },
   "dependencies": {
     "@creditkarma/async-hooks": "0.0.1-1"

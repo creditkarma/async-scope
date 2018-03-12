@@ -21,6 +21,10 @@ setTimeout(() => {
 
   parentFunction()
 }, 500)
+
+setTimeout(() => {
+    asyncScope.get<number>('foo') // returns null
+}, 3000)
 ```
 
 Think about this in terms of building a service framework where you have a server receiving HTTP requests and clients sending out HTTP requests. There is data on incoming HTTP headers that needs to be propagated to all clients (tracing, authentication, other company/user specific data). A library could set the desired values to the Async Scope store and client libraries could read that data without the service/application developers having to take any responsibility for passing data from server to client.

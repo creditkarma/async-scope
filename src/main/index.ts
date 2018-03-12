@@ -134,7 +134,7 @@ export class AsyncScope implements IAsyncScope {
 
         AsyncHooks.createHook({
             init(asyncId, type, triggerAsyncId, resource) {
-                AsyncHooks.debug('init: ', arguments)
+                // AsyncHooks.debug('init: ', arguments)
                 const currentTime: number = Date.now()
 
                 if (!self.asyncMap.has(triggerAsyncId)) {

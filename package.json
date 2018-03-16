@@ -8,11 +8,12 @@
     "dist/main"
   ],
   "keywords": [
-    "TypeScript",
-    "Async Hooks",
-    "Thread Storage",
-    "K/V Store",
-    "Node"
+    "typescript",
+    "async hooks",
+    "async wrap",
+    "thread storage",
+    "k/v store",
+    "node"
   ],
   "scripts": {
     "clean": "rimraf ./dist",
@@ -37,7 +38,7 @@
     "url": "https://github.com/creditkarma/async-scope"
   },
   "dependencies": {
-    "@creditkarma/async-hooks": "0.0.1-1"
+    "@creditkarma/async-hooks": "0.0.1"
   },
   "devDependencies": {
     "@types/code": "^4.0.3",

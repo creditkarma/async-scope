@@ -6,6 +6,11 @@ export interface IAsyncScope {
     delete(key: string): void
 }
 
+export interface IAsyncOptions {
+    nodeExpiration?: number
+    purgeInterval?: number
+}
+
 interface IDictionary {
     [key: string]: any
 }
@@ -128,7 +133,10 @@ function schedulePurge(asyncMap: AsyncMap): void {
 export class AsyncScope implements IAsyncScope {
     private asyncMap: Map<number, IAsyncNode>
 
-    constructor() {
+    constructor({
+        nodeExpiration = NODE_EXPIRATION,
+        purgeInterval = PURGE_INTERVAL,
+    }: IAsyncOptions = {}) {
         const self = this
         this.asyncMap = new Map()
 
@@ -212,4 +220,4 @@ export class AsyncScope implements IAsyncScope {
     }
 }
 
-export const asyncScope: AsyncScope = new AsyncScope()
+export const sharedScope: AsyncScope = new AsyncScope()

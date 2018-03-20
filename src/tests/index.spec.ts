@@ -2,7 +2,7 @@ import { expect } from 'code'
 import * as Lab from 'lab'
 
 import { setTimeout } from 'timers'
-import { sharedScope } from '../main/'
+import { AsyncScope } from '../main/'
 
 export const lab = Lab.script()
 
@@ -12,28 +12,30 @@ const it = lab.it
 describe('AsyncScope', () => {
     describe('set', () => {
         it('should add value to current execution scope', (done) => {
-            sharedScope.set('set_test', 45)
-            expect(sharedScope.get<number>('set_test')).to.equal(45)
+            const asyncScope = new AsyncScope()
+            asyncScope.set('set_test', 45)
+            expect(asyncScope.get<number>('set_test')).to.equal(45)
             done()
         })
     })
 
     describe('get', () => {
         it('should allow fetching of values set on the same call tree', (done) => {
+            const asyncScope = new AsyncScope()
             setTimeout(() => {
                 function childFunction() {
-                    expect(sharedScope.get<number>('foo')).to.equal(6)
-                    sharedScope.set('bar', 89)
+                    expect(asyncScope.get<number>('foo')).to.equal(6)
+                    asyncScope.set('bar', 89)
                 }
 
                 function parentFunction() {
-                    sharedScope.set('foo', 6)
+                    asyncScope.set('foo', 6)
                     setTimeout(() => {
                         childFunction()
                     }, 50)
 
                     setTimeout(() => {
-                        expect(sharedScope.get<number>('bar')).to.equal(null)
+                        expect(asyncScope.get<number>('bar')).to.equal(null)
                         done()
                     }, 250)
                 }
@@ -43,15 +45,16 @@ describe('AsyncScope', () => {
         })
 
         it('should not allow fetching of values set on different async call trees', (done) => {
+            const asyncScope = new AsyncScope()
             setTimeout(() => { // runs first
-                sharedScope.set('boom', 109)
+                asyncScope.set('boom', 109)
 
                 function childFunction() { // runs fourth
-                    expect(sharedScope.get<number>('boo')).to.equal(null)
+                    expect(asyncScope.get<number>('boo')).to.equal(null)
                 }
 
                 function parentFunction() { // runs third
-                    sharedScope.set('bam', 98)
+                    asyncScope.set('bam', 98)
                     setTimeout(childFunction, 200)
                 }
 
@@ -59,11 +62,11 @@ describe('AsyncScope', () => {
             }, 100)
 
             setTimeout(() => { // runs second
-                sharedScope.set('boo', 37)
-                expect(sharedScope.get<number>('boom')).to.equal(null)
+                asyncScope.set('boo', 37)
+                expect(asyncScope.get<number>('boom')).to.equal(null)
 
                 function childFunction() { // runs sixth
-                    expect(sharedScope.get<number>('bam')).to.equal(null)
+                    expect(asyncScope.get<number>('bam')).to.equal(null)
                     done()
                 }
 
@@ -76,19 +79,20 @@ describe('AsyncScope', () => {
         })
 
         it('should correctly fetch values across multiple sibling async contexts', (done) => {
+            const asyncScope = new AsyncScope()
             const values: Array<number> = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            sharedScope.set('all_siblings', 456)
+            asyncScope.set('all_siblings', 456)
             values.forEach((next: number) => {
                 setTimeout(() => {
-                    sharedScope.set(`key_${next}`, next)
+                    asyncScope.set(`key_${next}`, next)
                     setTimeout(() => {
-                        expect(sharedScope.get<number>(`key_${next}`)).to.equal(next)
-                        expect(sharedScope.get<number>('all_siblings')).to.equal(456)
+                        expect(asyncScope.get<number>(`key_${next}`)).to.equal(next)
+                        expect(asyncScope.get<number>('all_siblings')).to.equal(456)
                         values.forEach((v) => {
                             if (v !== next) {
-                                expect(sharedScope.get<number>(`key_${v}`)).to.equal(null)
+                                expect(asyncScope.get<number>(`key_${v}`)).to.equal(null)
                             } else {
-                                expect(sharedScope.get<number>(`key_${v}`)).to.equal(next)
+                                expect(asyncScope.get<number>(`key_${v}`)).to.equal(next)
                             }
                         })
 
@@ -99,35 +103,51 @@ describe('AsyncScope', () => {
                 }, (200 - (next * 18)))
             })
         })
+
+        it('should correctly access scope of a promise', (done) => {
+            const asyncScope = new AsyncScope()
+            const resolvedPromise = Promise.resolve()
+            asyncScope.set('test_1', 'value_1')
+            setTimeout(() => {
+                asyncScope.set('test_2', 'value_2')
+                resolvedPromise.then(() => {
+                    expect(asyncScope.get<string>('test_1')).to.equal('value_1')
+                    expect(asyncScope.get<string>('test_2')).to.equal('value_2')
+                    done()
+                })
+            }, 200)
+        })
     })
 
     describe('delete', () => {
         it('should delete an existing value from the store', (done) => {
-            sharedScope.set('delete_test', 67)
-            expect(sharedScope.get<number>('delete_test')).to.equal(67)
-            sharedScope.delete('delete_test')
-            expect(sharedScope.get<number>('delete_test')).to.equal(null)
+            const asyncScope = new AsyncScope()
+            asyncScope.set('delete_test', 67)
+            expect(asyncScope.get<number>('delete_test')).to.equal(67)
+            asyncScope.delete('delete_test')
+            expect(asyncScope.get<number>('delete_test')).to.equal(null)
             done()
         })
 
         it('should delete the value from all accessible scopes', (done) => {
+            const asyncScope = new AsyncScope()
             setTimeout(() => {
-                sharedScope.set('test_val', 78)
-                expect(sharedScope.get<number>('test_val')).to.equal(78)
+                asyncScope.set('test_val', 78)
+                expect(asyncScope.get<number>('test_val')).to.equal(78)
                 setTimeout(() => {
-                    expect(sharedScope.get<number>('test_val')).to.equal(78)
-                    sharedScope.set('test_val', 56)
-                    expect(sharedScope.get<number>('test_val')).to.equal(56)
+                    expect(asyncScope.get<number>('test_val')).to.equal(78)
+                    asyncScope.set('test_val', 56)
+                    expect(asyncScope.get<number>('test_val')).to.equal(56)
                     setTimeout(() => {
-                        expect(sharedScope.get<number>('test_val')).to.equal(56)
-                        sharedScope.set('test_val', 23)
-                        expect(sharedScope.get<number>('test_val')).to.equal(23)
+                        expect(asyncScope.get<number>('test_val')).to.equal(56)
+                        asyncScope.set('test_val', 23)
+                        expect(asyncScope.get<number>('test_val')).to.equal(23)
                         setTimeout(() => {
-                            expect(sharedScope.get<number>('test_val')).to.equal(23)
-                            sharedScope.set('test_val', 789)
-                            expect(sharedScope.get<number>('test_val')).to.equal(789)
-                            sharedScope.delete('test_val')
-                            expect(sharedScope.get<number>('test_val')).to.equal(null)
+                            expect(asyncScope.get<number>('test_val')).to.equal(23)
+                            asyncScope.set('test_val', 789)
+                            expect(asyncScope.get<number>('test_val')).to.equal(789)
+                            asyncScope.delete('test_val')
+                            expect(asyncScope.get<number>('test_val')).to.equal(null)
                             done()
                         }, 100)
                     }, 100)

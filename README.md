@@ -5,7 +5,9 @@ Async Scope is a library built on the relatively new Node feature Async Hooks. I
 Let's look at a convoluted example:
 
 ```typescript
-import { asyncScope } from '@creditkarma/async-scope'
+import { AsyncScope } from '@creditkarma/async-scope'
+
+const asyncScope: AsyncScope = new AsyncScope()
 
 setTimeout(() => {
   function childFunction() {
@@ -35,6 +37,19 @@ Think about this in terms of building a service framework where you have a serve
 $ npm install --save @creditkarma/async-scope
 ```
 
+### Constructing an Instance
+
+When constructing a new instance there are two optional parameters `nodeExpiration` and `purgeInterval`. The idea behind Async Scope is that data should be very short-lived. Depending on what you are storing memory foot print could be non-trivial if left running for a long period of time. These options configure expiration of data. `nodeExpiration` defines how long data in a particular context should be allowed to live, defaults to 10 minutes. The other option `purgeInterval` is how often the store looks for and ejects expired data, defaults to 5 minutes.
+
+```typescript
+import { AsyncScope } from '@creditkarma/async-scope'
+
+const asyncScope: AsyncScope = new AsyncScope({
+    nodeExpiration: 600000
+    purgeInterval: 300000,
+})
+```
+
 ### Basic KV Store API
 
 The Async Scope store supports three operations: `get`, `set` and `delete`.
@@ -44,8 +59,9 @@ The Async Scope store supports three operations: `get`, `set` and `delete`.
 Sets a value to be read by the current scope or any child scope.
 
 ```typescript
-import { asyncScope } from '@creditkarma/async-scope'
+import { AsyncScope } from '@creditkarma/async-scope'
 
+const asyncScope: AsyncScope = new AsyncScope()
 asyncScope.set('foo', 5)
 ```
 
@@ -54,8 +70,9 @@ asyncScope.set('foo', 5)
 Read a value from the current scope or any parent scope. It works like the prototype chain. It will return the first value matching the given key it finds by searching the chain (closest parent with matching key).
 
 ```typescript
-import { asyncScope } from '@creditkarma/async-scope'
+import { AsyncScope } from '@creditkarma/async-scope'
 
+const asyncScope: AsyncScope = new AsyncScope()
 asyncScope.get('foo')
 ```
 
@@ -64,8 +81,9 @@ asyncScope.get('foo')
 Remove the given key from the current scope. This is a recursive delete. If there is more than one matching key in the current scope chain then all will be deleted.
 
 ```typescript
-import { asyncScope } from '@creditkarma/async-scope'
+import { AsyncScope } from '@creditkarma/async-scope'
 
+const asyncScope: AsyncScope = new AsyncScope()
 asyncScope.delete('foo')
 ```
 
@@ -78,8 +96,9 @@ These are methods for inspecting the async scope when things aren't behaving as 
 Return an array representing the lineage of the current scope. Each scope has a unique id. This lists, in order, the parents of the current scope. The current scope is the first element in the array, the next is the immediate parent and so on.
 
 ```typescript
-import { asyncScope } from '@creditkarma/async-scope'
+import { AsyncScope } from '@creditkarma/async-scope'
 
+const asyncScope: AsyncScope = new AsyncScope()
 console.log(asyncScope.lineage())
 ```
 

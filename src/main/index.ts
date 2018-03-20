@@ -29,7 +29,7 @@ type AsyncMap = Map<number, IAsyncNode>
 // Data has a ten minute expiration
 const NODE_EXPIRATION: number = (1000 * 60 * 10)
 
-// Purge data every 10 minutes
+// Purge data every 5 minutes
 const PURGE_INTERVAL: number = (1000 * 60 * 5)
 
 function cleanUpParents(asyncId: number, parentId: number, asyncMap: AsyncMap): void {
@@ -141,8 +141,8 @@ export class AsyncScope implements IAsyncScope {
         this.asyncMap = new Map()
 
         AsyncHooks.createHook({
-            init(asyncId, type, triggerAsyncId, resource) {
-                // AsyncHooks.debug('init: ', arguments)
+            init(asyncId: number, type: string, triggerAsyncId: number, resource: object) {
+                // AsyncHooks.debug('init: ', type)
                 const currentTime: number = Date.now()
 
                 if (!self.asyncMap.has(triggerAsyncId)) {
@@ -172,16 +172,16 @@ export class AsyncScope implements IAsyncScope {
                     })
                 }
             },
-            before(asyncId) {
+            before(asyncId: number) {
                 // AsyncHooks.debug('before: ', asyncId)
             },
-            after(asyncId) {
+            after(asyncId: number) {
                 // AsyncHooks.debug('after: ', asyncId)
             },
-            promiseResolve(asyncId) {
+            promiseResolve(asyncId: number) {
                 // AsyncHooks.debug('promiseResolve: ', asyncId)
             },
-            destroy(asyncId) {
+            destroy(asyncId: number) {
                 const nodeToDestroy = self.asyncMap.get(asyncId)
                 if (nodeToDestroy !== undefined) {
                     destroyNode(asyncId, nodeToDestroy, self.asyncMap)

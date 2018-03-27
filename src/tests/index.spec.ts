@@ -1,7 +1,6 @@
 import { expect } from 'code'
 import * as Lab from 'lab'
 
-import { setTimeout } from 'timers'
 import { AsyncScope } from '../main/'
 
 export const lab = Lab.script()

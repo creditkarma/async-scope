@@ -112,26 +112,35 @@ function destroyNode(asyncId: number, nodeToDestroy: IAsyncNode, asyncMap: Async
     }
 }
 
-function schedulePurge(asyncMap: AsyncMap): void {
-    setTimeout(() => {
-        const currentTime: number = Date.now()
-        const toPurge: Array<IAsyncNode> = []
-        asyncMap.forEach((element: IAsyncNode) => {
-            if ((currentTime - element.timestamp) > NODE_EXPIRATION) {
-                toPurge.push(element)
-            }
-        })
+function runPurge(asyncMap: AsyncMap, ttl: number): void {
+    const currentTime: number = Date.now()
+    const toPurge: Array<IAsyncNode> = []
+    asyncMap.forEach((element: IAsyncNode) => {
+        if ((currentTime - element.timestamp) > ttl) {
+            toPurge.push(element)
+        }
+    })
 
-        toPurge.forEach((element: IAsyncNode) => {
-            destroyNode(element.id, element, asyncMap)
-        })
+    toPurge.forEach((element: IAsyncNode) => {
+        destroyNode(element.id, element, asyncMap)
+    })
+}
 
-        schedulePurge(asyncMap)
+// This will periodically remove long-lived nodes to prevent excess memory usage
+function schedulePurge(asyncMap: AsyncMap, interval: number, ttl: number): NodeJS.Timer {
+    return setTimeout(() => {
+        runPurge(asyncMap, ttl)
+        schedulePurge(asyncMap, interval, ttl)
     }, PURGE_INTERVAL)
 }
 
 export class AsyncScope implements IAsyncScope {
     private asyncMap: Map<number, IAsyncNode>
+    private asyncHooks: AsyncHooks.IAsyncHook
+    private enabled: boolean = false
+    private timer: NodeJS.Timer | undefined
+    private nodeExpiration: number
+    private purgeInterval: number
 
     constructor({
         nodeExpiration = NODE_EXPIRATION,
@@ -139,8 +148,10 @@ export class AsyncScope implements IAsyncScope {
     }: IAsyncOptions = {}) {
         const self = this
         this.asyncMap = new Map()
+        this.nodeExpiration = nodeExpiration
+        this.purgeInterval = purgeInterval
 
-        AsyncHooks.createHook({
+        this.asyncHooks = AsyncHooks.createHook({
             init(asyncId: number, type: string, triggerAsyncId: number, resource: object) {
                 // AsyncHooks.debug('init: ', type)
                 const currentTime: number = Date.now()
@@ -187,18 +198,37 @@ export class AsyncScope implements IAsyncScope {
                     destroyNode(asyncId, nodeToDestroy, self.asyncMap)
                 }
             },
-        }).enable()
+        })
+    }
 
-        // This will periodically remove long-lived nodes to prevent excess memory usage
-        schedulePurge(this.asyncMap)
+    public enable(): void {
+        if (!this.enabled) {
+            this.enabled = true
+            this.asyncHooks.enable()
+            this.timer = schedulePurge(this.asyncMap, this.purgeInterval, this.nodeExpiration)
+        }
+    }
+
+    public disable(): void {
+        if (this.enabled) {
+            this.enabled = false
+            this.asyncHooks.disable()
+            runPurge(this.asyncMap, this.nodeExpiration)
+        }
+
+        if (this.timer !== undefined) {
+            clearTimeout(this.timer)
+        }
     }
 
     public get<T>(key: string): T | null {
+        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
         return recursiveGet<T>(key, activeId, this.asyncMap)
     }
 
     public set<T>(key: string, value: T): void {
+        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
         const activeNode: IAsyncNode | undefined = this.asyncMap.get(activeId)
         if (activeNode !== undefined) {
@@ -207,6 +237,7 @@ export class AsyncScope implements IAsyncScope {
     }
 
     public delete(key: string): void {
+        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
         recursiveDelete(key, activeId, this.asyncMap)
     }
@@ -215,6 +246,7 @@ export class AsyncScope implements IAsyncScope {
      * A method for debugging, returns the lineage (parent scope ids) of the current scope
      */
     public lineage(): Array<number> {
+        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
         return lineageFor(activeId, this.asyncMap)
     }

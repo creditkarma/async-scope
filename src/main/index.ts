@@ -112,35 +112,27 @@ function destroyNode(asyncId: number, nodeToDestroy: IAsyncNode, asyncMap: Async
     }
 }
 
-function runPurge(asyncMap: AsyncMap, ttl: number): void {
-    const currentTime: number = Date.now()
-    const toPurge: Array<IAsyncNode> = []
-    asyncMap.forEach((element: IAsyncNode) => {
-        if ((currentTime - element.timestamp) > ttl) {
-            toPurge.push(element)
-        }
-    })
+function runPurge(asyncMap: AsyncMap, currentTime: number, ttl: number): void {
+    if (ttl > 0) {
+        const toPurge: Array<IAsyncNode> = []
+        asyncMap.forEach((element: IAsyncNode) => {
+            if ((currentTime - element.timestamp) > ttl) {
+                AsyncHooks.debug('purge: ', element)
+                toPurge.push(element)
+            }
+        })
 
-    toPurge.forEach((element: IAsyncNode) => {
-        destroyNode(element.id, element, asyncMap)
-    })
-}
-
-// This will periodically remove long-lived nodes to prevent excess memory usage
-function schedulePurge(asyncMap: AsyncMap, interval: number, ttl: number): NodeJS.Timer {
-    return setTimeout(() => {
-        runPurge(asyncMap, ttl)
-        schedulePurge(asyncMap, interval, ttl)
-    }, PURGE_INTERVAL)
+        toPurge.forEach((element: IAsyncNode) => {
+            destroyNode(element.id, element, asyncMap)
+        })
+    }
 }
 
 export class AsyncScope implements IAsyncScope {
     private asyncMap: Map<number, IAsyncNode>
-    private asyncHooks: AsyncHooks.IAsyncHook
-    private enabled: boolean = false
-    private timer: NodeJS.Timer | undefined
     private nodeExpiration: number
     private purgeInterval: number
+    private lastPurge: number
 
     constructor({
         nodeExpiration = NODE_EXPIRATION,
@@ -150,38 +142,25 @@ export class AsyncScope implements IAsyncScope {
         this.asyncMap = new Map()
         this.nodeExpiration = nodeExpiration
         this.purgeInterval = purgeInterval
+        this.lastPurge = Date.now()
 
-        this.asyncHooks = AsyncHooks.createHook({
+        AsyncHooks.createHook({
             init(asyncId: number, type: string, triggerAsyncId: number, resource: object) {
-                // AsyncHooks.debug('init: ', type)
-                const currentTime: number = Date.now()
-
                 if (!self.asyncMap.has(triggerAsyncId)) {
-                    self.asyncMap.set(triggerAsyncId, {
-                        id: triggerAsyncId,
-                        timestamp: currentTime,
-                        parentId: null,
-                        exited: false,
-                        data: {},
-                        children: [],
-                    })
+                    self.addNode(triggerAsyncId, null)
                 }
 
                 const parentNode: IAsyncNode | undefined = self.asyncMap.get(triggerAsyncId)
 
                 if (parentNode !== undefined) {
                     parentNode.children.push(asyncId)
-                    parentNode.timestamp = currentTime
-
-                    self.asyncMap.set(asyncId, {
-                        id: asyncId,
-                        timestamp: currentTime,
-                        parentId: triggerAsyncId,
-                        exited: false,
-                        data: {},
-                        children: [],
-                    })
+                    parentNode.timestamp = Date.now()
+                    self.addNode(asyncId, triggerAsyncId)
                 }
+
+                self.purge()
+
+                // AsyncHooks.debug(`init[${asyncId}]: parent[${triggerAsyncId}]: `, self.asyncMap)
             },
             before(asyncId: number) {
                 // AsyncHooks.debug('before: ', asyncId)
@@ -197,39 +176,21 @@ export class AsyncScope implements IAsyncScope {
                 if (nodeToDestroy !== undefined) {
                     destroyNode(asyncId, nodeToDestroy, self.asyncMap)
                 }
+
+                self.purge()
             },
-        })
-    }
-
-    public enable(): void {
-        if (!this.enabled) {
-            this.enabled = true
-            this.asyncHooks.enable()
-            this.timer = schedulePurge(this.asyncMap, this.purgeInterval, this.nodeExpiration)
-        }
-    }
-
-    public disable(): void {
-        if (this.enabled) {
-            this.enabled = false
-            this.asyncHooks.disable()
-            runPurge(this.asyncMap, this.nodeExpiration)
-        }
-
-        if (this.timer !== undefined) {
-            clearTimeout(this.timer)
-        }
+        }).enable()
     }
 
     public get<T>(key: string): T | null {
-        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
+        this.addNode(activeId, null)
         return recursiveGet<T>(key, activeId, this.asyncMap)
     }
 
     public set<T>(key: string, value: T): void {
-        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
+        this.addNode(activeId, null)
         const activeNode: IAsyncNode | undefined = this.asyncMap.get(activeId)
         if (activeNode !== undefined) {
             activeNode.data[key] = value
@@ -237,7 +198,6 @@ export class AsyncScope implements IAsyncScope {
     }
 
     public delete(key: string): void {
-        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
         recursiveDelete(key, activeId, this.asyncMap)
     }
@@ -246,10 +206,30 @@ export class AsyncScope implements IAsyncScope {
      * A method for debugging, returns the lineage (parent scope ids) of the current scope
      */
     public lineage(): Array<number> {
-        this.enable()
         const activeId: number = AsyncHooks.executionAsyncId()
         return lineageFor(activeId, this.asyncMap)
     }
+
+    private addNode(asyncId: number, parentId: number | null): void {
+        if (!this.asyncMap.has(asyncId)) {
+            this.asyncMap.set(asyncId, {
+                id: asyncId,
+                timestamp: Date.now(),
+                parentId,
+                exited: false,
+                data: {},
+                children: [],
+            })
+        }
+    }
+
+    private purge(): void {
+        const currentTime: number = Date.now()
+        if ((currentTime - this.lastPurge) > this.purgeInterval) {
+            this.lastPurge = currentTime
+            runPurge(this.asyncMap, currentTime, this.nodeExpiration)
+        }
+    }
 }
 
-export const sharedScope: AsyncScope = new AsyncScope()
+// export const sharedScope: AsyncScope = new AsyncScope()

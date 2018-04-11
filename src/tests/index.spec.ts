@@ -1,6 +1,7 @@
 import { expect } from 'code'
 import * as Lab from 'lab'
 
+import * as Bluebird from 'bluebird'
 import { AsyncScope } from '../main/'
 
 export const lab = Lab.script()
@@ -107,14 +108,70 @@ describe('AsyncScope', () => {
             const asyncScope = new AsyncScope()
             const resolvedPromise = Promise.resolve()
             asyncScope.set('test_1', 'value_1')
+
+            function makePromise() {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve(5)
+                    }, 10)
+                })
+            }
+
             setTimeout(() => {
                 asyncScope.set('test_2', 'value_2')
                 resolvedPromise.then(() => {
                     expect(asyncScope.get<string>('test_1')).to.equal('value_1')
                     expect(asyncScope.get<string>('test_2')).to.equal('value_2')
-                    done()
+                    makePromise().then((val) => {
+                        asyncScope.set('test_3', 'value_3')
+                        expect(asyncScope.get<string>('test_2')).to.equal('value_2')
+                        expect(asyncScope.get<string>('test_3')).to.equal('value_3')
+                    })
                 })
             }, 200)
+
+            setTimeout(() => {
+                resolvedPromise.then(() => {
+                    expect(asyncScope.get<string>('test_2')).to.equal(null)
+                    expect(asyncScope.get<string>('test_3')).to.equal(null)
+                    done()
+                })
+            }, 300)
+        })
+
+        it('should correctly access scope of a bluebird promise', (done) => {
+            const asyncScope = new AsyncScope()
+            const resolvedPromise = Bluebird.resolve()
+            asyncScope.set('test_1', 'value_1')
+
+            function makePromise() {
+                return new Bluebird((resolve, reject) => {
+                    setTimeout(() => {
+                        resolve(5)
+                    }, 10)
+                })
+            }
+
+            setTimeout(() => {
+                asyncScope.set('test_2', 'value_2')
+                resolvedPromise.then(() => {
+                    expect(asyncScope.get<string>('test_1')).to.equal('value_1')
+                    expect(asyncScope.get<string>('test_2')).to.equal('value_2')
+                    makePromise().then((val) => {
+                        asyncScope.set('test_3', 'value_3')
+                        expect(asyncScope.get<string>('test_2')).to.equal('value_2')
+                        expect(asyncScope.get<string>('test_3')).to.equal('value_3')
+                    })
+                })
+            }, 200)
+
+            setTimeout(() => {
+                resolvedPromise.then(() => {
+                    expect(asyncScope.get<string>('test_2')).to.equal(null)
+                    expect(asyncScope.get<string>('test_3')).to.equal(null)
+                    done()
+                })
+            }, 300)
         })
     })
 

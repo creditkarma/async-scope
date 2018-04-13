@@ -117,7 +117,6 @@ function runPurge(asyncMap: AsyncMap, currentTime: number, ttl: number): void {
         const toPurge: Array<IAsyncNode> = []
         asyncMap.forEach((element: IAsyncNode) => {
             if ((currentTime - element.timestamp) > ttl) {
-                AsyncHooks.debug('purge: ', element)
                 toPurge.push(element)
             }
         })

@@ -24,7 +24,9 @@ interface IAsyncNode {
     children: Array<number>
 }
 
-type AsyncMap = Map<number, IAsyncNode>
+interface IAsyncMap {
+    [asyncId: number]: IAsyncNode
+}
 
 // Data has a ten minute expiration
 const NODE_EXPIRATION: number = (1000 * 60 * 10)
@@ -32,25 +34,31 @@ const NODE_EXPIRATION: number = (1000 * 60 * 10)
 // Purge data every 5 minutes
 const PURGE_INTERVAL: number = (1000 * 60 * 5)
 
-function cleanUpParents(asyncId: number, parentId: number, asyncMap: AsyncMap): void {
-    const asyncNode: IAsyncNode | undefined = asyncMap.get(parentId)
+function cleanUpParents(asyncId: number, parentId: number, asyncMap: IAsyncMap): void {
+    const asyncNode: IAsyncNode | undefined = asyncMap[parentId]
     if (asyncNode !== undefined) {
-        asyncNode.children = asyncNode.children.filter((next: number) => {
-            return next !== asyncId
-        })
+        const newChildren: Array<number> = []
+
+        for (const next of asyncNode.children) {
+            if (next !== asyncId) {
+                newChildren.push(next)
+            }
+        }
+
+        asyncNode.children = newChildren
 
         if (asyncNode.exited && asyncNode.children.length === 0) {
             const nextParentId: number | null = asyncNode.parentId
             if (nextParentId !== null) {
-                asyncMap.delete(parentId)
+                delete asyncMap[parentId]
                 cleanUpParents(parentId, nextParentId, asyncMap)
             }
         }
     }
 }
 
-function recursiveGet<T>(key: string, asyncId: number, asyncMap: AsyncMap): T | null {
-    const asyncNode: IAsyncNode | undefined = asyncMap.get(asyncId)
+function recursiveGet<T>(key: string, asyncId: number, asyncMap: IAsyncMap): T | null {
+    const asyncNode: IAsyncNode | undefined = asyncMap[asyncId]
     if (asyncNode !== undefined) {
         if (asyncNode.data[key] !== undefined) {
             return asyncNode.data[key]
@@ -68,8 +76,8 @@ function recursiveGet<T>(key: string, asyncId: number, asyncMap: AsyncMap): T | 
     }
 }
 
-function recursiveDelete(key: string, asyncId: number, asyncMap: AsyncMap): void {
-    const asyncNode: IAsyncNode | undefined = asyncMap.get(asyncId)
+function recursiveDelete(key: string, asyncId: number, asyncMap: IAsyncMap): void {
+    const asyncNode: IAsyncNode | undefined = asyncMap[asyncId]
     if (asyncNode !== undefined) {
         const parentId: number | null = asyncNode.parentId
 
@@ -83,8 +91,8 @@ function recursiveDelete(key: string, asyncId: number, asyncMap: AsyncMap): void
     }
 }
 
-function lineageFor(asyncId: number, asyncMap: AsyncMap): Array<number> {
-    const asyncNode: IAsyncNode | undefined = asyncMap.get(asyncId)
+function lineageFor(asyncId: number, asyncMap: IAsyncMap): Array<number> {
+    const asyncNode: IAsyncNode | undefined = asyncMap[asyncId]
     if (asyncNode !== undefined) {
         const parentId: number | null = asyncNode.parentId
 
@@ -96,12 +104,12 @@ function lineageFor(asyncId: number, asyncMap: AsyncMap): Array<number> {
     return [ asyncId ]
 }
 
-function destroyNode(asyncId: number, nodeToDestroy: IAsyncNode, asyncMap: AsyncMap): void {
+function destroyNode(asyncId: number, nodeToDestroy: IAsyncNode, asyncMap: IAsyncMap): void {
     // Only delete if the the child scopes are not still active
     if (nodeToDestroy.children.length === 0) {
         const parentId: number | null = nodeToDestroy.parentId
         if (parentId !== null) {
-            asyncMap.delete(asyncId)
+            delete asyncMap[asyncId]
             cleanUpParents(asyncId, parentId, asyncMap)
         }
 
@@ -112,23 +120,33 @@ function destroyNode(asyncId: number, nodeToDestroy: IAsyncNode, asyncMap: Async
     }
 }
 
-function runPurge(asyncMap: AsyncMap, currentTime: number, ttl: number): void {
+function runPurge(asyncMap: IAsyncMap, currentTime: number, ttl: number): void {
     if (ttl > 0) {
         const toPurge: Array<IAsyncNode> = []
-        asyncMap.forEach((element: IAsyncNode) => {
-            if ((currentTime - element.timestamp) > ttl) {
-                toPurge.push(element)
-            }
-        })
 
-        toPurge.forEach((element: IAsyncNode) => {
+        for (const key in asyncMap) {
+            if (asyncMap.hasOwnProperty(key)) {
+                const element = asyncMap[key]
+                if ((currentTime - element.timestamp) > ttl) {
+                    toPurge.push(element)
+                }
+            }
+        }
+
+        for (const element of toPurge) {
             destroyNode(element.id, element, asyncMap)
-        })
+        }
+
+        toPurge.length = 0
     }
 }
 
 export class AsyncScope implements IAsyncScope {
-    private asyncMap: Map<number, IAsyncNode>
+    public static debug(msg: string, ...args: Array<any>): void {
+        AsyncHooks.debug(msg, ...args)
+    }
+
+    private asyncMap: IAsyncMap
     private nodeExpiration: number
     private purgeInterval: number
     private lastPurge: number
@@ -138,18 +156,19 @@ export class AsyncScope implements IAsyncScope {
         purgeInterval = PURGE_INTERVAL,
     }: IAsyncOptions = {}) {
         const self = this
-        this.asyncMap = new Map()
+        this.asyncMap = {}
         this.nodeExpiration = nodeExpiration
         this.purgeInterval = purgeInterval
         this.lastPurge = Date.now()
 
         AsyncHooks.createHook({
             init(asyncId: number, type: string, triggerAsyncId: number, resource: object) {
-                if (!self.asyncMap.has(triggerAsyncId)) {
+                // AsyncScope.debug(`asyncId[${asyncId}], parentId[${triggerAsyncId}]`)
+                if (self.asyncMap[triggerAsyncId] === undefined) {
                     self.addNode(triggerAsyncId, null)
                 }
 
-                const parentNode: IAsyncNode | undefined = self.asyncMap.get(triggerAsyncId)
+                const parentNode: IAsyncNode | undefined = self.asyncMap[triggerAsyncId]
 
                 if (parentNode !== undefined) {
                     parentNode.children.push(asyncId)
@@ -158,20 +177,21 @@ export class AsyncScope implements IAsyncScope {
                 }
 
                 self.purge()
-
-                // AsyncHooks.debug(`init[${asyncId}]: parent[${triggerAsyncId}]: `, self.asyncMap)
             },
             before(asyncId: number) {
-                // AsyncHooks.debug('before: ', asyncId)
+                // Nothing to see here
+                // AsyncScope.debug(`before[${asyncId}]`)
             },
             after(asyncId: number) {
-                // AsyncHooks.debug('after: ', asyncId)
+                // Nothing to see here
+                // AsyncScope.debug(`after[${asyncId}]`)
             },
             promiseResolve(asyncId: number) {
-                // AsyncHooks.debug('promiseResolve: ', asyncId)
+                // Nothing to see here
+                // AsyncScope.debug(`promiseResolve[${asyncId}]`)
             },
             destroy(asyncId: number) {
-                const nodeToDestroy = self.asyncMap.get(asyncId)
+                const nodeToDestroy = self.asyncMap[asyncId]
                 if (nodeToDestroy !== undefined) {
                     destroyNode(asyncId, nodeToDestroy, self.asyncMap)
                 }
@@ -190,7 +210,7 @@ export class AsyncScope implements IAsyncScope {
     public set<T>(key: string, value: T): void {
         const activeId: number = AsyncHooks.executionAsyncId()
         this.addNode(activeId, null)
-        const activeNode: IAsyncNode | undefined = this.asyncMap.get(activeId)
+        const activeNode: IAsyncNode | undefined = this.asyncMap[activeId]
         if (activeNode !== undefined) {
             activeNode.data[key] = value
         }
@@ -210,15 +230,15 @@ export class AsyncScope implements IAsyncScope {
     }
 
     private addNode(asyncId: number, parentId: number | null): void {
-        if (!this.asyncMap.has(asyncId)) {
-            this.asyncMap.set(asyncId, {
+        if (this.asyncMap[asyncId] === undefined) {
+            this.asyncMap[asyncId] = {
                 id: asyncId,
                 timestamp: Date.now(),
                 parentId,
                 exited: false,
                 data: {},
                 children: [],
-            })
+            }
         }
     }
 

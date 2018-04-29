@@ -35,6 +35,7 @@ describe('AsyncScope', () => {
                     }, 50)
 
                     setTimeout(() => {
+                        expect(asyncScope.get<number>('foo')).to.equal(6)
                         expect(asyncScope.get<number>('bar')).to.equal(null)
                         done()
                     }, 250)
@@ -111,9 +112,7 @@ describe('AsyncScope', () => {
 
             function makePromise() {
                 return new Promise((resolve, reject) => {
-                    setTimeout(() => {
-                        resolve(5)
-                    }, 10)
+                    resolve(5)
                 })
             }
 
@@ -127,6 +126,8 @@ describe('AsyncScope', () => {
                         expect(asyncScope.get<string>('test_2')).to.equal('value_2')
                         expect(asyncScope.get<string>('test_3')).to.equal('value_3')
                     })
+                }).catch((err) => {
+                    done(err)
                 })
             }, 200)
 
@@ -146,9 +147,7 @@ describe('AsyncScope', () => {
 
             function makePromise() {
                 return new Bluebird((resolve, reject) => {
-                    setTimeout(() => {
-                        resolve(5)
-                    }, 10)
+                    resolve(5)
                 })
             }
 
@@ -162,6 +161,8 @@ describe('AsyncScope', () => {
                         expect(asyncScope.get<string>('test_2')).to.equal('value_2')
                         expect(asyncScope.get<string>('test_3')).to.equal('value_3')
                     })
+                }).catch((err) => {
+                    done(err)
                 })
             }, 200)
 

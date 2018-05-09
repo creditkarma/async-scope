@@ -1,3 +1,5 @@
+import { AsyncHooks } from '@creditkarma/async-hooks'
+
 export interface IAsyncScope {
     get<T>(key: string): T | null
     set<T>(key: string, value: T): void
@@ -7,6 +9,8 @@ export interface IAsyncScope {
 export interface IAsyncOptions {
     nodeExpiration?: number
     purgeInterval?: number
+    maxSize?: number
+    asyncHooks?: AsyncHooks
 }
 
 export interface IDictionary {
@@ -16,6 +20,7 @@ export interface IDictionary {
 export interface IAsyncNode {
     id: number
     timestamp: number
+    nextId: number
     parentId: number | null
     exited: boolean
     data: IDictionary
@@ -23,5 +28,7 @@ export interface IAsyncNode {
 }
 
 export interface IAsyncMap {
+    size: number
+    oldestId: number
     [asyncId: number]: IAsyncNode
 }

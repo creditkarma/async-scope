@@ -10,18 +10,18 @@ import { AsyncScope } from '@creditkarma/async-scope'
 const asyncScope: AsyncScope = new AsyncScope()
 
 setTimeout(() => {
-  function childFunction() {
-    asyncScope.get<number>('foo') // returns 6
-  }
+    function childFunction() {
+        asyncScope.get<number>('foo') // returns 6
+    }
 
-  function parentFunction() {
-    asyncScope.set('foo', 6)
-    setTimeout(() => {
-      childFunction()
-    }, 1000)
-  }
+    function parentFunction() {
+        asyncScope.set('foo', 6)
+        setTimeout(() => {
+            childFunction()
+        }, 1000)
+    }
 
-  parentFunction()
+    parentFunction()
 }, 500)
 
 setTimeout(() => {
@@ -39,14 +39,15 @@ $ npm install --save @creditkarma/async-scope
 
 ### Constructing an Instance
 
-When constructing a new instance there are two optional parameters `nodeExpiration` and `purgeInterval`. The idea behind Async Scope is that data should be very short-lived. Depending on what you are storing memory foot print could be non-trivial if left running for a long period of time. These options configure expiration of data. `nodeExpiration` defines how long data in a particular context should be allowed to live, defaults to 10 minutes. The other option `purgeInterval` is how often the store looks for and ejects expired data, defaults to 5 minutes.
+When constructing a new instance there are three optional parameters `nodeExpiration`, `purgeInterval` and `maxSize`. The idea behind Async Scope is that data should be very short-lived. Depending on what you are storing memory foot print could be non-trivial if left running for a long period of time. These options configure expiration of data. `nodeExpiration` defines how long data in a particular context should be allowed to live, defaults to 5 seconds. The option `purgeInterval` is how often the store looks for and ejects expired data, defaults to 10 seconds. The final option `maxSize` configures how many objects to hold in the scope store, defaults to 20000 items. If the `maxSize` is reach older objects are ejected to make room for new ones.
 
 ```typescript
 import { AsyncScope } from '@creditkarma/async-scope'
 
 const asyncScope: AsyncScope = new AsyncScope({
-    nodeExpiration: 600000
-    purgeInterval: 300000,
+    nodeExpiration: 5000
+    purgeInterval: 10000,
+    maxSize: 20000,
 })
 ```
 

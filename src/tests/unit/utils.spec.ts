@@ -1,8 +1,8 @@
 import { expect } from 'code'
 import * as Lab from 'lab'
 
-import { IAsyncMap } from '../main/types'
-import * as Utils from '../main/utils'
+import { IAsyncMap } from '../../main/types'
+import * as Utils from '../../main/utils'
 
 export const lab = Lab.script()
 
@@ -13,9 +13,12 @@ describe('Utils', () => {
     describe('destroyNode', () => {
         it('should remove node and cleanup parents', async () => {
             const mockMap: IAsyncMap = {
+                size: 7,
+                oldestId: 0,
                 0: {
                     id: 0,
                     timestamp: 0,
+                    nextId: -1,
                     parentId: null,
                     exited: false,
                     data: {},
@@ -24,6 +27,7 @@ describe('Utils', () => {
                 1: {
                     id: 1,
                     timestamp: 0,
+                    nextId: 0,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -32,6 +36,7 @@ describe('Utils', () => {
                 2: {
                     id: 2,
                     timestamp: 0,
+                    nextId: 1,
                     parentId: 1,
                     exited: false,
                     data: {},
@@ -40,6 +45,7 @@ describe('Utils', () => {
                 3: {
                     id: 3,
                     timestamp: 0,
+                    nextId: 2,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -48,6 +54,7 @@ describe('Utils', () => {
                 4: {
                     id: 4,
                     timestamp: 0,
+                    nextId: 3,
                     parentId: 2,
                     exited: false,
                     data: {},
@@ -56,6 +63,7 @@ describe('Utils', () => {
                 5: {
                     id: 5,
                     timestamp: 0,
+                    nextId: 4,
                     parentId: 1,
                     exited: false,
                     data: {},
@@ -64,6 +72,7 @@ describe('Utils', () => {
                 6: {
                     id: 6,
                     timestamp: 0,
+                    nextId: 5,
                     parentId: 5,
                     exited: false,
                     data: {},
@@ -74,9 +83,12 @@ describe('Utils', () => {
             Utils.destroyNode(5, mockMap)
 
             expect<IAsyncMap>(mockMap).to.equal({
+                size: 7,
+                oldestId: 0,
                 0: {
                     id: 0,
                     timestamp: 0,
+                    nextId: -1,
                     parentId: null,
                     exited: false,
                     data: {},
@@ -85,6 +97,7 @@ describe('Utils', () => {
                 1: {
                     id: 1,
                     timestamp: 0,
+                    nextId: 0,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -93,6 +106,7 @@ describe('Utils', () => {
                 2: {
                     id: 2,
                     timestamp: 0,
+                    nextId: 1,
                     parentId: 1,
                     exited: false,
                     data: {},
@@ -101,6 +115,7 @@ describe('Utils', () => {
                 3: {
                     id: 3,
                     timestamp: 0,
+                    nextId: 2,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -109,6 +124,7 @@ describe('Utils', () => {
                 4: {
                     id: 4,
                     timestamp: 0,
+                    nextId: 3,
                     parentId: 2,
                     exited: false,
                     data: {},
@@ -117,6 +133,7 @@ describe('Utils', () => {
                 5: {
                     id: 5,
                     timestamp: 0,
+                    nextId: 4,
                     parentId: 1,
                     exited: true,
                     data: {},
@@ -125,6 +142,7 @@ describe('Utils', () => {
                 6: {
                     id: 6,
                     timestamp: 0,
+                    nextId: 5,
                     parentId: 5,
                     exited: false,
                     data: {},
@@ -135,9 +153,12 @@ describe('Utils', () => {
             Utils.destroyNode(6, mockMap)
 
             expect<IAsyncMap>(mockMap).to.equal({
+                size: 5,
+                oldestId: 0,
                 0: {
                     id: 0,
                     timestamp: 0,
+                    nextId: -1,
                     parentId: null,
                     exited: false,
                     data: {},
@@ -146,6 +167,7 @@ describe('Utils', () => {
                 1: {
                     id: 1,
                     timestamp: 0,
+                    nextId: 0,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -154,6 +176,7 @@ describe('Utils', () => {
                 2: {
                     id: 2,
                     timestamp: 0,
+                    nextId: 1,
                     parentId: 1,
                     exited: false,
                     data: {},
@@ -162,6 +185,7 @@ describe('Utils', () => {
                 3: {
                     id: 3,
                     timestamp: 0,
+                    nextId: 2,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -170,6 +194,7 @@ describe('Utils', () => {
                 4: {
                     id: 4,
                     timestamp: 0,
+                    nextId: 3,
                     parentId: 2,
                     exited: false,
                     data: {},
@@ -180,9 +205,12 @@ describe('Utils', () => {
             Utils.destroyNode(1, mockMap)
 
             expect<IAsyncMap>(mockMap).to.equal({
+                size: 5,
+                oldestId: 0,
                 0: {
                     id: 0,
                     timestamp: 0,
+                    nextId: -1,
                     parentId: null,
                     exited: false,
                     data: {},
@@ -191,6 +219,7 @@ describe('Utils', () => {
                 1: {
                     id: 1,
                     timestamp: 0,
+                    nextId: 0,
                     parentId: 0,
                     exited: true,
                     data: {},
@@ -199,6 +228,7 @@ describe('Utils', () => {
                 2: {
                     id: 2,
                     timestamp: 0,
+                    nextId: 1,
                     parentId: 1,
                     exited: false,
                     data: {},
@@ -207,6 +237,7 @@ describe('Utils', () => {
                 3: {
                     id: 3,
                     timestamp: 0,
+                    nextId: 2,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -215,6 +246,7 @@ describe('Utils', () => {
                 4: {
                     id: 4,
                     timestamp: 0,
+                    nextId: 3,
                     parentId: 2,
                     exited: false,
                     data: {},
@@ -225,9 +257,12 @@ describe('Utils', () => {
             Utils.destroyNode(2, mockMap)
 
             expect<IAsyncMap>(mockMap).to.equal({
+                size: 5,
+                oldestId: 0,
                 0: {
                     id: 0,
                     timestamp: 0,
+                    nextId: -1,
                     parentId: null,
                     exited: false,
                     data: {},
@@ -236,6 +271,7 @@ describe('Utils', () => {
                 1: {
                     id: 1,
                     timestamp: 0,
+                    nextId: 0,
                     parentId: 0,
                     exited: true,
                     data: {},
@@ -244,6 +280,7 @@ describe('Utils', () => {
                 2: {
                     id: 2,
                     timestamp: 0,
+                    nextId: 1,
                     parentId: 1,
                     exited: true,
                     data: {},
@@ -252,6 +289,7 @@ describe('Utils', () => {
                 3: {
                     id: 3,
                     timestamp: 0,
+                    nextId: 2,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -260,6 +298,7 @@ describe('Utils', () => {
                 4: {
                     id: 4,
                     timestamp: 0,
+                    nextId: 3,
                     parentId: 2,
                     exited: false,
                     data: {},
@@ -270,9 +309,12 @@ describe('Utils', () => {
             Utils.destroyNode(4, mockMap)
 
             expect<IAsyncMap>(mockMap).to.equal({
+                size: 2,
+                oldestId: 0,
                 0: {
                     id: 0,
                     timestamp: 0,
+                    nextId: -1,
                     parentId: null,
                     exited: false,
                     data: {},
@@ -281,6 +323,7 @@ describe('Utils', () => {
                 3: {
                     id: 3,
                     timestamp: 0,
+                    nextId: 2,
                     parentId: 0,
                     exited: false,
                     data: {},
@@ -291,9 +334,12 @@ describe('Utils', () => {
             Utils.destroyNode(3, mockMap)
 
             expect<IAsyncMap>(mockMap).to.equal({
+                size: 1,
+                oldestId: 0,
                 0: {
                     id: 0,
                     timestamp: 0,
+                    nextId: -1,
                     parentId: null,
                     exited: false,
                     data: {},

@@ -18,8 +18,9 @@ export function cleanUpParents(asyncId: number, parentId: number, asyncMap: IAsy
 
         if (asyncNode.exited && asyncNode.children.length === 0) {
             const nextParentId: number | null = asyncNode.parentId
+            delete asyncMap[parentId]
+
             if (nextParentId !== null) {
-                delete asyncMap[parentId]
                 asyncId = parentId
                 parentId = nextParentId
                 asyncNode = asyncMap[nextParentId]
@@ -72,10 +73,13 @@ export function lineageFor(asyncId: number, asyncMap: IAsyncMap): Array<number> 
 
         if (parentId !== null) {
             return [ asyncId, ...lineageFor(parentId, asyncMap) ]
+
+        } else {
+            return [ asyncId ]
         }
     }
 
-    return [ asyncId ]
+    return []
 }
 
 export function destroyNode(asyncId: number, asyncMap: IAsyncMap): void {
@@ -87,7 +91,13 @@ export function destroyNode(asyncId: number, asyncMap: IAsyncMap): void {
             const parentId: number | null = nodeToDestroy.parentId
             if (parentId !== null) {
                 delete asyncMap[asyncId]
+
+                if (nodeToDestroy.id === asyncMap.oldestId) {
+                    asyncMap.oldestId = nodeToDestroy.nextId
+                }
+
                 cleanUpParents(asyncId, parentId, asyncMap)
+                asyncMap.size = (Object.keys(asyncMap).length - 2)
             }
 
         // If child scopes are still active mark this scope as exited so we can clean up

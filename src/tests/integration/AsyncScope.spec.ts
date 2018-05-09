@@ -2,7 +2,7 @@ import { expect } from 'code'
 import * as Lab from 'lab'
 
 import * as Bluebird from 'bluebird'
-import { AsyncScope } from '../main/'
+import { AsyncScope } from '../../main/'
 
 export const lab = Lab.script()
 

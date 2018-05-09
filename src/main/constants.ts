@@ -1,5 +1,5 @@
-// Data has a ten minute expiration
-export const NODE_EXPIRATION: number = (1000 * 60 * 10)
+// Data has a five second expiration
+export const NODE_EXPIRATION: number = 5000
 
-// Purge data every 5 minutes
-export const PURGE_INTERVAL: number = (1000 * 60 * 5)
+// Purge data every 10 seconds
+export const PURGE_INTERVAL: number = 10000

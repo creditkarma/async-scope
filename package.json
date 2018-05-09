@@ -39,7 +39,7 @@
     "url": "https://github.com/creditkarma/async-scope"
   },
   "dependencies": {
-    "@creditkarma/async-hooks": "0.0.4"
+    "@creditkarma/async-hooks": "0.0.5"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.20",

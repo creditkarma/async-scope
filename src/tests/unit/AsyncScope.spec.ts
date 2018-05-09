@@ -1,4 +1,4 @@
-import { AsyncHooks, IAsyncHook, IHookCallbacks } from '@creditkarma/async-hooks'
+import { IAsyncHook, IAsyncHooks, IHookCallbacks } from '@creditkarma/async-hooks'
 import { expect } from 'code'
 import * as Lab from 'lab'
 
@@ -39,7 +39,7 @@ class MockAsyncContext {
         this.currentId = id
     }
 
-    public getMockHooks(): AsyncHooks {
+    public getMockHooks(): IAsyncHooks {
         return {
             createHook: (callbacks: IHookCallbacks): IAsyncHook => {
                 this.callbacks = callbacks

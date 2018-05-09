@@ -1,4 +1,4 @@
-import { AsyncHooks } from '@creditkarma/async-hooks'
+import { IAsyncHooks } from '@creditkarma/async-hooks'
 
 export interface IAsyncScope {
     get<T>(key: string): T | null
@@ -10,7 +10,7 @@ export interface IAsyncOptions {
     nodeExpiration?: number
     purgeInterval?: number
     maxSize?: number
-    asyncHooks?: AsyncHooks
+    asyncHooks?: IAsyncHooks
 }
 
 export interface IDictionary {

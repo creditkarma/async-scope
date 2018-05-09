@@ -19,7 +19,6 @@
     "clean": "rimraf ./dist",
     "clean-all": "rimraf dist/ node_modules/ package-lock.json",
     "lint": "tslint --fix './src/**/*.ts'",
-    "prepublish": "npm run build",
     "prebuild": "npm run clean",
     "build": "npm run lint && tsc",
     "watch": "tsc --watch",
@@ -39,7 +38,7 @@
     "url": "https://github.com/creditkarma/async-scope"
   },
   "dependencies": {
-    "@creditkarma/async-hooks": "0.0.5"
+    "@creditkarma/async-hooks": "0.0.6"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.20",

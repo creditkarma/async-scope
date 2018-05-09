@@ -26,7 +26,7 @@ export class AsyncScope implements IAsyncScope {
     private maxSize: number
     private lastPurge: number
     private previousId: number
-    private asyncHooks: AsyncHooks.AsyncHooks
+    private asyncHooks: AsyncHooks.IAsyncHooks
 
     constructor({
         nodeExpiration = NODE_EXPIRATION,

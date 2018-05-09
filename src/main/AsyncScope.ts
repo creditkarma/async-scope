@@ -111,10 +111,6 @@ export class AsyncScope implements IAsyncScope {
         Utils.recursiveDelete(key, activeId, this.asyncMap)
     }
 
-    public getMap(): IAsyncMap {
-        return this.asyncMap
-    }
-
     /**
      * A method for debugging, returns the lineage (parent scope ids) of the current scope
      */

@@ -92,22 +92,22 @@ describe('AsyncScope', () => {
         mockContext.setId(7)
         expect<Array<number>>(asyncScope.lineage()).to.equal([ 7, 4, 3, 1, 0 ])
 
-        mockContext.addNode(10, 1) // eject 1
+        mockContext.addNode(10, 1) // eject 0
 
         mockContext.setId(10)
-        expect<Array<number>>(asyncScope.lineage()).to.equal([ 10 ])
+        expect<Array<number>>(asyncScope.lineage()).to.equal([ 10, 1 ])
 
         mockContext.setId(7)
-        expect<Array<number>>(asyncScope.lineage()).to.equal([ 7, 4, 3 ])
+        expect<Array<number>>(asyncScope.lineage()).to.equal([ 7, 4, 3, 1 ])
 
         mockContext.setId(5)
-        expect<Array<number>>(asyncScope.lineage()).to.equal([ 5, 2, 0 ])
+        expect<Array<number>>(asyncScope.lineage()).to.equal([ 5, 2 ])
 
-        mockContext.addNode(11, 2) // eject 2
-        mockContext.addNode(12, 7) // eject 3
+        mockContext.addNode(11, 2) // eject 1
+        mockContext.addNode(12, 7) // eject 2
 
         mockContext.setId(12)
-        expect<Array<number>>(asyncScope.lineage()).to.equal([ 12, 7, 4 ])
+        expect<Array<number>>(asyncScope.lineage()).to.equal([ 12, 7, 4, 3 ])
 
         mockContext.setId(5)
         expect<Array<number>>(asyncScope.lineage()).to.equal([ 5 ])

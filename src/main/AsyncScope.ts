@@ -58,18 +58,6 @@ export class AsyncScope implements IAsyncScope {
                     self._addNode(asyncId, triggerAsyncId)
                 }
 
-                // Set the initial oldest value
-                if (self.asyncMap.oldestId === -1) {
-                    self.asyncMap.oldestId = asyncId
-                }
-
-                const previousNode: IAsyncNode | undefined = self.asyncMap[self.previousId]
-                if (previousNode !== undefined) {
-                    previousNode.nextId = asyncId
-                }
-
-                self.previousId = asyncId
-
                 self._purge()
             },
             before(asyncId: number) {
@@ -134,11 +122,15 @@ export class AsyncScope implements IAsyncScope {
         if (nodeToDelete !== undefined) {
             delete this.asyncMap[this.asyncMap.oldestId]
             this.asyncMap.oldestId = nodeToDelete.nextId
+            this.asyncMap.size -= 1
 
             if (nodeToDelete.parentId !== null) {
                 const parentNode: IAsyncNode | undefined = this.asyncMap[nodeToDelete.parentId]
                 if (parentNode !== undefined) {
-                    parentNode.children.splice(parentNode.children.indexOf(oldestId), 1)
+                    const indexToRemove: number = parentNode.children.indexOf(oldestId)
+                    if (indexToRemove > -1) {
+                        parentNode.children.splice(indexToRemove, 1)
+                    }
                 }
             }
         }
@@ -146,10 +138,7 @@ export class AsyncScope implements IAsyncScope {
 
     private _addNode(asyncId: number, parentId: number | null): void {
         if (this.asyncMap[asyncId] === undefined) {
-            if (this.asyncMap.size < this.maxSize) {
-                this.asyncMap.size += 1
-
-            } else {
+            if (this.asyncMap.size >= this.maxSize) {
                 this._removeOldest()
             }
 
@@ -162,6 +151,20 @@ export class AsyncScope implements IAsyncScope {
                 data: {},
                 children: [],
             }
+
+            // Set the initial oldest value
+            if (this.asyncMap.oldestId === -1) {
+                this.asyncMap.oldestId = asyncId
+            }
+
+            const previousNode: IAsyncNode | undefined = this.asyncMap[this.previousId]
+            if (previousNode !== undefined) {
+                previousNode.nextId = asyncId
+            }
+
+            this.previousId = asyncId
+
+            this.asyncMap.size += 1
         }
     }
 

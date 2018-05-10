@@ -32,3 +32,8 @@ export interface IAsyncMap {
     oldestId: number
     [asyncId: number]: IAsyncNode
 }
+
+export interface ISizeProfile {
+    size: number
+    maxSize: number
+}

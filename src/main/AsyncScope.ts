@@ -5,6 +5,7 @@ import {
     IAsyncNode,
     IAsyncOptions,
     IAsyncScope,
+    ISizeProfile,
 } from './types'
 
 import * as Utils from './utils'
@@ -120,6 +121,13 @@ export class AsyncScope implements IAsyncScope {
         return Utils.lineageFor(activeId, this.asyncMap)
     }
 
+    public size(): ISizeProfile {
+        return {
+            size: this.asyncMap.size,
+            maxSize: this.maxSize,
+        }
+    }
+
     private removeOldest(): void {
         const oldestId: number = this.asyncMap.oldestId
         const nodeToDelete: IAsyncNode | undefined = this.asyncMap[oldestId]
@@ -140,6 +148,7 @@ export class AsyncScope implements IAsyncScope {
         if (this.asyncMap[asyncId] === undefined) {
             if (this.asyncMap.size < this.maxSize) {
                 this.asyncMap.size += 1
+
             } else {
                 this.removeOldest()
             }

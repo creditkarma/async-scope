@@ -103,6 +103,26 @@ const asyncScope: AsyncScope = new AsyncScope()
 console.log(asyncScope.lineage())
 ```
 
+#### `size`
+
+Returns an object describing the size of the current store.
+
+```typescript
+interface ISizeProfile {
+    size: number
+    maxSize: number
+}
+```
+
+The object contains two properties. First `size` is the current number of scopes being tracked by the store. Second `maxSize` is the maximum number the store will hold before it starts ejecting old scopes.
+
+```typescript
+import { AsyncScope } from '@creditkarma/async-scope'
+
+const asyncScope: AsyncScope = new AsyncScope()
+console.log(asyncScope.size())
+```
+
 ## Contributing
 
 For more information about contributing new features and bug fixes, see our [Contribution Guidelines](https://github.com/creditkarma/CONTRIBUTING.md).

@@ -5,4 +5,4 @@ export const NODE_EXPIRATION: number = 5000
 export const PURGE_INTERVAL: number = 10000
 
 // Max number of scopes to track
-export const MAX_SIZE: number = 20000
+export const MAX_SIZE: number = 10000

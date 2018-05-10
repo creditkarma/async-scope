@@ -48,14 +48,14 @@ export class AsyncScope implements IAsyncScope {
             init(asyncId: number, type: string, triggerAsyncId: number, resource: object) {
                 // AsyncScope.debug(`asyncId[${asyncId}], parentId[${triggerAsyncId}]`)
                 if (self.asyncMap[triggerAsyncId] === undefined) {
-                    self.addNode(triggerAsyncId, null)
+                    self._addNode(triggerAsyncId, null)
                 }
 
                 const parentNode: IAsyncNode | undefined = self.asyncMap[triggerAsyncId]
                 if (parentNode !== undefined) {
                     parentNode.children.push(asyncId)
                     parentNode.timestamp = Date.now()
-                    self.addNode(asyncId, triggerAsyncId)
+                    self._addNode(asyncId, triggerAsyncId)
                 }
 
                 // Set the initial oldest value
@@ -70,7 +70,7 @@ export class AsyncScope implements IAsyncScope {
 
                 self.previousId = asyncId
 
-                self.purge()
+                self._purge()
             },
             before(asyncId: number) {
                 // AsyncScope.debug(`before[${asyncId}]`)
@@ -80,7 +80,7 @@ export class AsyncScope implements IAsyncScope {
                 // AsyncScope.debug(`after[${asyncId}]`)
                 Utils.destroyNode(asyncId, self.asyncMap)
 
-                self.purge()
+                self._purge()
             },
             promiseResolve(asyncId: number) {
                 // AsyncScope.debug(`promiseResolve[${asyncId}]`)
@@ -95,13 +95,13 @@ export class AsyncScope implements IAsyncScope {
 
     public get<T>(key: string): T | null {
         const activeId: number = this.asyncHooks.executionAsyncId()
-        this.addNode(activeId, null)
+        this._addNode(activeId, null)
         return Utils.recursiveGet<T>(key, activeId, this.asyncMap)
     }
 
     public set<T>(key: string, value: T): void {
         const activeId: number = this.asyncHooks.executionAsyncId()
-        this.addNode(activeId, null)
+        this._addNode(activeId, null)
         const activeNode: IAsyncNode | undefined = this.asyncMap[activeId]
         if (activeNode !== undefined) {
             activeNode.data[key] = value
@@ -128,7 +128,7 @@ export class AsyncScope implements IAsyncScope {
         }
     }
 
-    private removeOldest(): void {
+    private _removeOldest(): void {
         const oldestId: number = this.asyncMap.oldestId
         const nodeToDelete: IAsyncNode | undefined = this.asyncMap[oldestId]
         if (nodeToDelete !== undefined) {
@@ -144,13 +144,13 @@ export class AsyncScope implements IAsyncScope {
         }
     }
 
-    private addNode(asyncId: number, parentId: number | null): void {
+    private _addNode(asyncId: number, parentId: number | null): void {
         if (this.asyncMap[asyncId] === undefined) {
             if (this.asyncMap.size < this.maxSize) {
                 this.asyncMap.size += 1
 
             } else {
-                this.removeOldest()
+                this._removeOldest()
             }
 
             this.asyncMap[asyncId] = {
@@ -165,7 +165,7 @@ export class AsyncScope implements IAsyncScope {
         }
     }
 
-    private purge(): void {
+    private _purge(): void {
         const currentTime: number = Date.now()
         if ((currentTime - this.lastPurge) > this.purgeInterval) {
             this.lastPurge = currentTime

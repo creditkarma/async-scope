@@ -72,21 +72,22 @@ export class AsyncScope implements IAsyncScope {
                 self.purge()
             },
             before(asyncId: number) {
-                // Nothing to see here
                 // AsyncScope.debug(`before[${asyncId}]`)
+                // Nothing to see here
             },
             after(asyncId: number) {
-                // Nothing to see here
                 // AsyncScope.debug(`after[${asyncId}]`)
-            },
-            promiseResolve(asyncId: number) {
-                // Nothing to see here
-                // AsyncScope.debug(`promiseResolve[${asyncId}]`)
-            },
-            destroy(asyncId: number) {
                 Utils.destroyNode(asyncId, self.asyncMap)
 
                 self.purge()
+            },
+            promiseResolve(asyncId: number) {
+                // AsyncScope.debug(`promiseResolve[${asyncId}]`)
+                // Nothing to see here
+            },
+            destroy(asyncId: number) {
+                // AsyncScope.debug(`destroy[${asyncId}]`)
+                // Nothing to see here
             },
         }).enable()
     }

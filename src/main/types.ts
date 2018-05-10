@@ -21,9 +21,10 @@ export interface IAsyncNode {
     id: number
     timestamp: number
     nextId: number
+    previousId: number
     parentId: number | null
     exited: boolean
-    data: IDictionary
+    data: IDictionary | undefined
     children: Array<number>
 }
 

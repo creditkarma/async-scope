@@ -3,39 +3,12 @@ import {
     IAsyncNode,
 } from './types'
 
-export function cleanUpParents(asyncId: number, parentId: number, asyncMap: IAsyncMap): void {
-    let asyncNode: IAsyncNode | undefined = asyncMap[parentId]
-    while (asyncNode !== undefined) {
-        const newChildren: Array<number> = []
-
-        for (const next of asyncNode.children) {
-            if (next !== asyncId) {
-                newChildren.push(next)
-            }
-        }
-
-        asyncNode.children = newChildren
-
-        if (asyncNode.exited && asyncNode.children.length === 0) {
-            const nextParentId: number | null = asyncNode.parentId
-            delete asyncMap[parentId]
-
-            if (nextParentId !== null) {
-                asyncId = parentId
-                parentId = nextParentId
-                asyncNode = asyncMap[nextParentId]
-                continue
-            }
-        }
-
-        asyncNode = undefined
-    }
-}
+// DATA UTILITIES
 
 export function recursiveGet<T>(key: string, asyncId: number, asyncMap: IAsyncMap): T | null {
     const asyncNode: IAsyncNode | undefined = asyncMap[asyncId]
     if (asyncNode !== undefined) {
-        if (asyncNode.data[key] !== undefined) {
+        if (asyncNode.data !== undefined && asyncNode.data[key] !== undefined) {
             return asyncNode.data[key]
 
         } else {
@@ -56,7 +29,7 @@ export function recursiveDelete(key: string, asyncId: number, asyncMap: IAsyncMa
     if (asyncNode !== undefined) {
         const parentId: number | null = asyncNode.parentId
 
-        if (asyncNode.data[key] !== undefined) {
+        if (asyncNode.data !== undefined && asyncNode.data[key] !== undefined) {
             asyncNode.data[key] = undefined
         }
 
@@ -82,22 +55,111 @@ export function lineageFor(asyncId: number, asyncMap: IAsyncMap): Array<number> 
     return []
 }
 
+// NODE UTILITIES
+
+export function cleanUpParents(asyncId: number, parentId: number, asyncMap: IAsyncMap): void {
+    let parentNode: IAsyncNode | undefined = asyncMap[parentId]
+    while (parentNode !== undefined) {
+        const indexToDelete: number = parentNode.children.indexOf(asyncId)
+        if (indexToDelete > -1) {
+            parentNode.children.splice(indexToDelete, 1)
+        }
+
+        if (parentNode.exited && parentNode.children.length === 0) {
+            delete asyncMap[parentId]
+            asyncMap.size = (asyncMap.size - 1)
+
+            const nextId = parentNode.nextId
+            const previousId = parentNode.previousId
+
+            const nextNode = asyncMap[nextId]
+            const previousNode = asyncMap[previousId]
+
+            if (previousNode !== undefined) {
+                previousNode.nextId = parentNode.nextId
+            }
+
+            if (nextNode !== undefined) {
+                nextNode.previousId = previousId
+            }
+
+            if (asyncMap.oldestId === parentNode.id) {
+                asyncMap.oldestId = nextId
+            }
+
+            const nextParentId: number | null = parentNode.parentId
+
+            if (nextParentId !== null) {
+                asyncId = parentId
+                parentId = nextParentId
+                parentNode = asyncMap[nextParentId]
+                continue
+            }
+        }
+
+        parentNode = undefined
+    }
+}
+
+export function removeOldest(asyncMap: IAsyncMap): void {
+    const oldestId: number = asyncMap.oldestId
+    const nodeToDelete: IAsyncNode | undefined = asyncMap[oldestId]
+    if (nodeToDelete !== undefined) {
+        delete asyncMap[asyncMap.oldestId]
+        asyncMap.size = (asyncMap.size - 1)
+
+        const previousId: number = nodeToDelete.previousId
+        const nextId: number = nodeToDelete.nextId
+        const nextNode: IAsyncNode | undefined = asyncMap[nextId]
+
+        if (nextNode !== undefined) {
+            nextNode.previousId = previousId
+        }
+
+        asyncMap.oldestId = nextId
+
+        for (const childId of nodeToDelete.children) {
+            const childNode: IAsyncNode | undefined = asyncMap[childId]
+            if (childNode !== undefined) {
+                childNode.parentId = null
+            }
+        }
+    } else if (oldestId > -1) {
+        asyncMap.oldestId = parseInt(Object.keys(asyncMap).sort()[0], 10)
+    }
+}
+
 export function destroyNode(asyncId: number, asyncMap: IAsyncMap): void {
     const nodeToDestroy: IAsyncNode | undefined = asyncMap[asyncId]
 
     if (nodeToDestroy !== undefined) {
         // Only delete if the the child scopes are not still active
         if (nodeToDestroy.children.length === 0) {
+            delete asyncMap[asyncId]
+            asyncMap.size = (asyncMap.size - 1)
+
+            const nextId = nodeToDestroy.nextId
+            const previousId = nodeToDestroy.previousId
+
+            const nextNode = asyncMap[nextId]
+            const previousNode = asyncMap[previousId]
+
+            if (previousNode !== undefined) {
+                previousNode.nextId = nodeToDestroy.nextId
+            }
+
+            if (nextNode !== undefined) {
+                nextNode.previousId = previousId
+            }
+
+            if (nodeToDestroy.id === asyncMap.oldestId) {
+                asyncMap.oldestId = nextId
+            }
+
             const parentId: number | null = nodeToDestroy.parentId
+
             if (parentId !== null) {
-                delete asyncMap[asyncId]
-
-                if (nodeToDestroy.id === asyncMap.oldestId) {
-                    asyncMap.oldestId = nodeToDestroy.nextId
-                }
-
                 cleanUpParents(asyncId, parentId, asyncMap)
-                asyncMap.size = (Object.keys(asyncMap).length - 2)
             }
 
         // If child scopes are still active mark this scope as exited so we can clean up

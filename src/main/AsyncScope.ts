@@ -47,9 +47,7 @@ export class AsyncScope implements IAsyncScope {
         asyncHooks.createHook({
             init(asyncId: number, type: string, triggerAsyncId: number, resource: object) {
                 // AsyncScope.debug(`asyncId[${asyncId}], parentId[${triggerAsyncId}]`)
-                if (self.asyncMap[triggerAsyncId] === undefined) {
-                    self._addNode(triggerAsyncId, null)
-                }
+                self._ensureNode(triggerAsyncId)
 
                 const parentNode: IAsyncNode | undefined = self.asyncMap[triggerAsyncId]
                 if (parentNode !== undefined) {
@@ -83,15 +81,18 @@ export class AsyncScope implements IAsyncScope {
 
     public get<T>(key: string): T | null {
         const activeId: number = this.asyncHooks.executionAsyncId()
-        this._addNode(activeId, null)
+        this._ensureNode(activeId)
         return Utils.recursiveGet<T>(key, activeId, this.asyncMap)
     }
 
     public set<T>(key: string, value: T): void {
         const activeId: number = this.asyncHooks.executionAsyncId()
-        this._addNode(activeId, null)
+        this._ensureNode(activeId)
         const activeNode: IAsyncNode | undefined = this.asyncMap[activeId]
         if (activeNode !== undefined) {
+            if (activeNode.data === undefined) {
+                activeNode.data = {}
+            }
             activeNode.data[key] = value
         }
     }
@@ -116,39 +117,26 @@ export class AsyncScope implements IAsyncScope {
         }
     }
 
-    private _removeOldest(): void {
-        const oldestId: number = this.asyncMap.oldestId
-        const nodeToDelete: IAsyncNode | undefined = this.asyncMap[oldestId]
-        if (nodeToDelete !== undefined) {
-            delete this.asyncMap[this.asyncMap.oldestId]
-            this.asyncMap.oldestId = nodeToDelete.nextId
-            this.asyncMap.size -= 1
-
-            if (nodeToDelete.parentId !== null) {
-                const parentNode: IAsyncNode | undefined = this.asyncMap[nodeToDelete.parentId]
-                if (parentNode !== undefined) {
-                    const indexToRemove: number = parentNode.children.indexOf(oldestId)
-                    if (indexToRemove > -1) {
-                        parentNode.children.splice(indexToRemove, 1)
-                    }
-                }
-            }
+    private _ensureNode(asyncId: number): void {
+        if (this.asyncMap[asyncId] === undefined) {
+            this._addNode(asyncId, null)
         }
     }
 
     private _addNode(asyncId: number, parentId: number | null): void {
         if (this.asyncMap[asyncId] === undefined) {
             if (this.asyncMap.size >= this.maxSize) {
-                this._removeOldest()
+                Utils.removeOldest(this.asyncMap)
             }
 
             this.asyncMap[asyncId] = {
                 id: asyncId,
                 timestamp: Date.now(),
                 nextId: -1,
+                previousId: this.previousId,
                 parentId,
                 exited: false,
-                data: {},
+                data: undefined,
                 children: [],
             }
 
@@ -157,13 +145,16 @@ export class AsyncScope implements IAsyncScope {
                 this.asyncMap.oldestId = asyncId
             }
 
+            // Creates a chain for determining oldest node
             const previousNode: IAsyncNode | undefined = this.asyncMap[this.previousId]
             if (previousNode !== undefined) {
                 previousNode.nextId = asyncId
             }
 
+            // Keep track of previously added node for linking our chain
             this.previousId = asyncId
 
+            // Increment map size
             this.asyncMap.size += 1
         }
     }

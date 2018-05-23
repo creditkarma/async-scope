@@ -337,8 +337,6 @@ describe('Utils', () => {
 
             Utils.destroyNode(4, mockMap)
 
-            console.log('actual: ', JSON.stringify(mockMap, null, 4))
-
             expect<IAsyncMap>(mockMap).to.equal({
                 size: 2,
                 oldestId: 0,

@@ -8,6 +8,7 @@ import {
     ISizeProfile,
 } from './types'
 
+import * as logger from './logger'
 import * as Utils from './utils'
 
 import {
@@ -46,34 +47,47 @@ export class AsyncScope implements IAsyncScope {
 
         asyncHooks.createHook({
             init(asyncId: number, type: string, triggerAsyncId: number, resource: object) {
-                // AsyncScope.debug(`asyncId[${asyncId}], parentId[${triggerAsyncId}]`)
-                self._ensureNode(triggerAsyncId)
+                const savedMap = self.asyncMap
 
-                const parentNode: IAsyncNode | undefined = self.asyncMap[triggerAsyncId]
-                if (parentNode !== undefined) {
-                    parentNode.children.push(asyncId)
-                    parentNode.timestamp = Date.now()
-                    self._addNode(asyncId, triggerAsyncId)
+                try {
+                    // logger.log(`asyncId[${asyncId}], parentId[${triggerAsyncId}]`)
+                    self._ensureNode(triggerAsyncId)
+
+                    const parentNode: IAsyncNode | undefined = self.asyncMap[triggerAsyncId]
+                    if (parentNode !== undefined) {
+                        parentNode.children.push(asyncId)
+                        parentNode.timestamp = Date.now()
+                        self._addNode(asyncId, triggerAsyncId)
+                    }
+
+                    self._purge()
+                } catch (err) {
+                    logger.error(`An error occurred while creating scope: `, err)
+                    self.asyncMap = savedMap
                 }
-
-                self._purge()
             },
             before(asyncId: number) {
-                // AsyncScope.debug(`before[${asyncId}]`)
+                // logger.log(`before[${asyncId}]`)
                 // Nothing to see here
             },
             after(asyncId: number) {
-                // AsyncScope.debug(`after[${asyncId}]`)
-                Utils.destroyNode(asyncId, self.asyncMap)
+                const savedMap = self.asyncMap
 
-                self._purge()
+                try {
+                    // logger.log(`after[${asyncId}]`)
+                    Utils.destroyNode(asyncId, self.asyncMap)
+                    self._purge()
+                } catch (err) {
+                    logger.error(`An error occurred while destroying scope with id[${asyncId}]: `, err)
+                    self.asyncMap = savedMap
+                }
             },
             promiseResolve(asyncId: number) {
-                // AsyncScope.debug(`promiseResolve[${asyncId}]`)
+                // logger.log(`promiseResolve[${asyncId}]`)
                 // Nothing to see here
             },
             destroy(asyncId: number) {
-                // AsyncScope.debug(`destroy[${asyncId}]`)
+                // logger.log(`destroy[${asyncId}]`)
                 // Nothing to see here
             },
         }).enable()

@@ -61,6 +61,8 @@ export class AsyncScope implements IAsyncScope {
                     }
 
                     self._purge()
+
+                // Log, reset, live to fight another day
                 } catch (err) {
                     logger.error(`An error occurred while creating scope: `, err)
                     self.asyncMap = savedMap
@@ -77,6 +79,8 @@ export class AsyncScope implements IAsyncScope {
                     // logger.log(`after[${asyncId}]`)
                     Utils.destroyNode(asyncId, self.asyncMap)
                     self._purge()
+
+                // Log, reset, live to fight another day
                 } catch (err) {
                     logger.error(`An error occurred while destroying scope with id[${asyncId}]: `, err)
                     self.asyncMap = savedMap

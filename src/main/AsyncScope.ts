@@ -19,7 +19,7 @@ import {
 
 export class AsyncScope implements IAsyncScope {
     public static debug(msg: string, ...args: Array<any>): void {
-        AsyncHooks.debug(msg, ...args)
+        AsyncHooks.debug.info(msg, ...args)
     }
 
     private asyncMap: IAsyncMap
